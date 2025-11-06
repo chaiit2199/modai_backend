@@ -2,11 +2,17 @@ defmodule ModaiBackendWeb.Router do
   use ModaiBackendWeb, :router
 
   pipeline :api do
+    plug ModaiBackendWeb.Plugs.CORS
     plug :accepts, ["json"]
   end
 
   scope "/api", ModaiBackendWeb do
     pipe_through :api
+
+    post "/login", AuthController, :login
+    post "/register", AuthController, :register
+    post "/forgot-password", AuthController, :forgot_password
+    post "/reset-password", AuthController, :reset_password
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

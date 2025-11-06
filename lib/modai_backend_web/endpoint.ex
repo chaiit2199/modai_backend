@@ -47,6 +47,7 @@ defmodule ModaiBackendWeb.Endpoint do
 
   plug Plug.MethodOverride
   plug Plug.Head
+  plug ModaiBackendWeb.Plugs.CORS
   plug Plug.Session, @session_options
   plug ModaiBackendWeb.Router
 end

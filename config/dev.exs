@@ -5,7 +5,7 @@ config :modai_backend, ModaiBackend.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
-  database: "modai_backend_dev",
+  database: "modai",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
@@ -61,6 +61,37 @@ config :phoenix, :stacktrace_depth, 20
 
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
+
+# Gmail SMTP Configuration
+#
+# Bước 1: Tạo App Password từ Google Account
+#   1. Vào https://myaccount.google.com/security
+#   2. Bật "2-Step Verification" nếu chưa bật
+#   3. Vào "App passwords" → Chọn "Mail" và "Other (Custom name)"
+#   4. Copy App Password (16 ký tự, có thể bỏ khoảng trắng)
+#
+# Bước 2: Set environment variables trong terminal:
+#   export SMTP_USERNAME="your-email@gmail.com"
+#   export SMTP_PASSWORD="your-16-char-app-password"
+#
+# Bước 3: Restart Phoenix server
+#   mix phx.server
+#
+# Nếu không set environment variables, sẽ dùng Local adapter (xem tại /dev/mailbox)
+
+config :modai_backend, ModaiBackend.Mailer,
+  adapter: Swoosh.Adapters.SMTP,
+  relay: "smtp.gmail.com",
+  username: "chaiit2199@gmail.com",
+  password: "ptwgutbreoowsdtu",  # App Password (bỏ khoảng trắng)
+  ssl: false,
+  tls: :always,
+  tls_options: [
+    verify: :verify_none
+  ],
+  auth: :always,
+  port: 587,
+  retries: 2
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
