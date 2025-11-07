@@ -3,7 +3,7 @@ defmodule ModaiBackendWeb.Auth.JWT do
   JWT token generation and verification module.
   """
 
-  @secret_key Application.compile_env(:modai_backend, ModaiBackendWeb.Guardian)[:secret_key]
+  @secret_key "ufNYrVWX67bKKx9l4zUOprb3tg3FtKUUULd6U9cUeisigGdq9ad/pd+8ApiiNZFQ"
   @access_token_expiration_minutes 30
   @refresh_token_expiration_days 1
 

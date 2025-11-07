@@ -23,15 +23,8 @@ defmodule ModaiBackendWeb.Endpoint do
   plug Plug.Static,
     at: "/",
     from: :modai_backend,
-    gzip: not code_reloading?,
     only: ModaiBackendWeb.static_paths()
 
-  # Code reloading can be explicitly enabled under the
-  # :code_reloader configuration of your endpoint.
-  if code_reloading? do
-    plug Phoenix.CodeReloader
-    plug Phoenix.Ecto.CheckRepoStatus, otp_app: :modai_backend
-  end
 
   plug Phoenix.LiveDashboard.RequestLogger,
     param_key: "request_logger",
