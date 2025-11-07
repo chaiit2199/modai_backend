@@ -13,6 +13,7 @@ defmodule ModaiBackendWeb.Router do
     post "/register", AuthController, :register
     post "/forgot-password", AuthController, :forgot_password
     post "/reset-password", AuthController, :reset_password
+    post "/refresh-token", AuthController, :refresh_token
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

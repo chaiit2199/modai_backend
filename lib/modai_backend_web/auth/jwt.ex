@@ -4,22 +4,24 @@ defmodule ModaiBackendWeb.Auth.JWT do
   """
 
   @secret_key Application.compile_env(:modai_backend, ModaiBackendWeb.Guardian)[:secret_key]
-  @token_expiration_minutes 60
+  @access_token_expiration_minutes 30
+  @refresh_token_expiration_days 1
 
   @doc """
-  Generates a JWT token for a user.
+  Generates an access token for a user.
 
-  Token expires after 1 hour by default.
+  Access token expires after 30 minutes.
   """
-  def generate_token(user) do
+  def generate_access_token(user) do
     now = DateTime.utc_now() |> DateTime.to_unix()
-    exp = now + (@token_expiration_minutes * 60)
+    exp = now + (@access_token_expiration_minutes * 60)
 
     extra_claims = %{
       "sub" => to_string(user.id),
       "username" => user.username,
       "email" => user.email,
       "role" => user.role,
+      "type" => "access",
       "iat" => now,
       "exp" => exp
     }
@@ -30,6 +32,18 @@ defmodule ModaiBackendWeb.Auth.JWT do
       {:ok, token, _claims} -> {:ok, token}
       error -> error
     end
+  end
+
+  @doc """
+  Generates a refresh token for a user.
+
+  Refresh token expires after 1 day.
+  Returns the token string (not JWT, just a secure random token).
+  """
+  def generate_refresh_token do
+    :crypto.strong_rand_bytes(32)
+    |> Base.url_encode64()
+    |> String.replace(~r/[+\/=]/, "")
   end
 
   @doc """
@@ -47,6 +61,20 @@ defmodule ModaiBackendWeb.Auth.JWT do
   end
 
   @doc """
+  Verifies that a token is an access token (not refresh token).
+  """
+  def verify_access_token(token) do
+    case verify_token(token) do
+      {:ok, claims} ->
+        case Map.get(claims, "type") do
+          "access" -> {:ok, claims}
+          _ -> {:error, :invalid_token_type}
+        end
+      error -> error
+    end
+  end
+
+  @doc """
   Gets user ID from token claims.
   """
   def get_user_id(claims) do
@@ -54,5 +82,14 @@ defmodule ModaiBackendWeb.Auth.JWT do
       nil -> nil
       user_id_string -> String.to_integer(user_id_string)
     end
+  end
+
+  @doc """
+  Gets refresh token expiration datetime.
+  """
+  def refresh_token_expires_at do
+    DateTime.utc_now()
+    |> DateTime.add(@refresh_token_expiration_days, :day)
+    |> DateTime.truncate(:second)
   end
 end

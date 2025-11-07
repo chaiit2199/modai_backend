@@ -20,7 +20,7 @@ defmodule ModaiBackendWeb.Plugs.Authenticate do
         |> halt()
 
       token ->
-        case JWT.verify_token(token) do
+        case JWT.verify_access_token(token) do
           {:ok, claims} ->
             user_id = JWT.get_user_id(claims)
 
@@ -35,10 +35,16 @@ defmodule ModaiBackendWeb.Plugs.Authenticate do
                 assign(conn, :current_user, user)
             end
 
+          {:error, :invalid_token_type} ->
+            conn
+            |> put_status(:unauthorized)
+            |> json(%{message: "Invalid token type. Access token required."})
+            |> halt()
+
           {:error, _reason} ->
             conn
             |> put_status(:unauthorized)
-            |> json(%{message: "Invalid or expired token"})
+            |> json(%{message: "Invalid or expired access token"})
             |> halt()
         end
     end

@@ -158,6 +158,54 @@ defmodule ModaiBackend.Accounts do
     end
   end
 
+  @doc """
+  Saves refresh token hash to user.
+  """
+  def save_refresh_token(user, refresh_token) do
+    refresh_token_hash = Bcrypt.hash_pwd_salt(refresh_token)
+    expires_at = ModaiBackendWeb.Auth.JWT.refresh_token_expires_at()
+
+    user
+    |> Ecto.Changeset.change()
+    |> Ecto.Changeset.put_change(:refresh_token_hash, refresh_token_hash)
+    |> Ecto.Changeset.put_change(:refresh_token_expires_at, expires_at)
+    |> Repo.update()
+  end
+
+  @doc """
+  Verifies refresh token and returns user if valid.
+  """
+  def verify_refresh_token(refresh_token) do
+    # Find user by checking refresh_token_hash
+    # We need to check all users with non-null refresh_token_hash
+    # and verify the token matches
+    users = Repo.all(from u in User, where: not is_nil(u.refresh_token_hash))
+
+    Enum.find_value(users, fn user ->
+      if Bcrypt.verify_pass(refresh_token, user.refresh_token_hash) do
+        # Check if token is expired
+        if user.refresh_token_expires_at && DateTime.compare(user.refresh_token_expires_at, DateTime.utc_now()) == :gt do
+          user
+        else
+          nil
+        end
+      else
+        nil
+      end
+    end)
+  end
+
+  @doc """
+  Revokes refresh token by clearing it from user.
+  """
+  def revoke_refresh_token(user) do
+    user
+    |> Ecto.Changeset.change()
+    |> Ecto.Changeset.put_change(:refresh_token_hash, nil)
+    |> Ecto.Changeset.put_change(:refresh_token_expires_at, nil)
+    |> Repo.update()
+  end
+
   defp generate_secure_token do
     :crypto.strong_rand_bytes(32)
     |> Base.url_encode64()

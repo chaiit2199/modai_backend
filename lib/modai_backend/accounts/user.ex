@@ -10,6 +10,8 @@ defmodule ModaiBackend.Accounts.User do
     field :password, :string, virtual: true
     field :reset_token, :string
     field :reset_token_sent_at, :utc_datetime
+    field :refresh_token_hash, :string
+    field :refresh_token_expires_at, :utc_datetime
 
     timestamps(type: :utc_datetime)
   end

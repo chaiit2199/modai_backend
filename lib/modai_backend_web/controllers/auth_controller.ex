@@ -7,28 +7,52 @@ defmodule ModaiBackendWeb.AuthController do
   def login(conn, %{"username" => username, "password" => password}) do
     case Accounts.authenticate_user(username, password) do
       {:ok, user} ->
-        case JWT.generate_token(user) do
-          {:ok, token} ->
-            conn
-            |> put_status(:ok)
-            |> json(%{
-              code: "000",
-              message: "Login successful",
-              token: token,
-              user: %{
-                id: user.id,
-                username: user.username,
-                email: user.email,
-                role: user.role
-              }
-            })
+        # Generate access token
+        case JWT.generate_access_token(user) do
+          {:ok, access_token} ->
+            # Generate refresh token
+            refresh_token = JWT.generate_refresh_token()
+
+            # Save refresh token hash to database
+            case Accounts.save_refresh_token(user, refresh_token) do
+              {:ok, _updated_user} ->
+                # Set refresh_token in HTTPOnly cookie
+                conn
+                |> put_resp_cookie("refresh_token", refresh_token,
+                  http_only: true,
+                  secure: false, # Set to true in production with HTTPS
+                  same_site: "Lax",
+                  max_age: 1 * 24 * 60 * 60, # 1 day in seconds
+                  path: "/"
+                )
+                |> put_status(:ok)
+                |> json(%{
+                  code: "000",
+                  message: "Login successful",
+                  access_token: access_token,
+                  user: %{
+                    id: user.id,
+                    username: user.username,
+                    email: user.email,
+                    role: user.role
+                  }
+                })
+
+              {:error, _reason} ->
+                conn
+                |> put_status(:internal_server_error)
+                |> json(%{
+                  code: "001",
+                  message: "Failed to save refresh token"
+                })
+            end
 
           {:error, _reason} ->
             conn
             |> put_status(:internal_server_error)
             |> json(%{
               code: "001",
-              message: "Failed to generate token"
+              message: "Failed to generate access token"
             })
         end
 
@@ -192,5 +216,56 @@ defmodule ModaiBackendWeb.AuthController do
       code: "009",
       message: "Reset token and password are required"
     })
+  end
+
+  @doc """
+  Refresh access token using refresh token from cookie.
+  """
+  def refresh_token(conn, _params) do
+    # Fetch cookies from request
+    conn = Plug.Conn.fetch_cookies(conn)
+    refresh_token = conn.cookies["refresh_token"]
+
+    case refresh_token do
+      nil ->
+        conn
+        |> put_status(:unauthorized)
+        |> json(%{
+          code: "011",
+          message: "Refresh token not found"
+        })
+
+      token ->
+        case Accounts.verify_refresh_token(token) do
+          nil ->
+            conn
+            |> put_status(:unauthorized)
+            |> json(%{
+              code: "012",
+              message: "Invalid or expired refresh token"
+            })
+
+          user ->
+            # Generate new access token
+            case JWT.generate_access_token(user) do
+              {:ok, access_token} ->
+                conn
+                |> put_status(:ok)
+                |> json(%{
+                  code: "000",
+                  message: "Token refreshed successfully",
+                  access_token: access_token
+                })
+
+              {:error, _reason} ->
+                conn
+                |> put_status(:internal_server_error)
+                |> json(%{
+                  code: "001",
+                  message: "Failed to generate access token"
+                })
+            end
+        end
+    end
   end
 end
