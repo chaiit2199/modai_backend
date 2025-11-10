@@ -8,11 +8,7 @@ defmodule ModaiBackendWeb.Plugs.CORS do
   def init(opts), do: opts
 
   def call(conn, _opts) do
-    whitelist =
-      (Application.get_env(:modai_backend, ModaiBackendWeb.Endpoint)[:allow_check_origin] || "")
-      |> String.split(",")
-      |> IO.inspect(label: "whitelistwhitelistwhitelist")
-
+    whitelist = (Application.get_env(:modai_backend, ModaiBackendWeb.Endpoint)[:allow_check_origin] || "")
     origin =
       with [host_request] <- Plug.Conn.get_req_header(conn, "origin"),
           {:ok, %URI{host: host}} <- URI.new(host_request || ""),
