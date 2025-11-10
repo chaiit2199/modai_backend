@@ -20,6 +20,7 @@ config :modai_backend, ModaiBackendWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {127, 0, 0, 1}, port: String.to_integer(System.get_env("PORT") || "4000")],
+  allow_check_origin: "localhost",
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
@@ -95,3 +96,20 @@ config :modai_backend, ModaiBackend.Mailer,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# Gemini API Configuration
+# Lấy API key từ: https://makersuite.google.com/app/apikey
+# Gemini 2.5 Flash: Miễn phí, nhanh, phù hợp cho tạo nội dung
+# Giới hạn miễn phí: Tùy theo gói của Google (thường là 15 requests/phút, 1500 requests/ngày)
+#
+# QUAN TRỌNG: Không hardcode API key vào code!
+# Set environment variable trong terminal:
+#   export API_KEY_GEMINI="your-new-api-key-here"
+#
+config :modai_backend,
+  # Lấy từ environment variable, nếu không có thì dùng empty string (sẽ báo lỗi khi dùng)
+  API_KEY_GEMINI: "AIzaSyAbX6l-8hQEiy0ScrN8vM53F0AsC19Y5rc",
+  # Sử dụng gemini-2.5-flash (miễn phí, nhanh)
+  # Nếu v1beta không hoạt động, thử v1: "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key="
+  URL_GEMINI: System.get_env("URL_GEMINI") || "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=",
+  GEMINI_CRONTAB: System.get_env("GEMINI_CRONTAB") || "* 4 * * *"

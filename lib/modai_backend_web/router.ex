@@ -14,6 +14,14 @@ defmodule ModaiBackendWeb.Router do
     post "/forgot-password", AuthController, :forgot_password
     post "/reset-password", AuthController, :reset_password
     post "/refresh-token", AuthController, :refresh_token
+
+    # DailyBloc API
+    get "/posts/latest", DailyBlocController, :latest_posts
+    get "/posts", DailyBlocController, :all_posts
+    get "/posts/:id", DailyBlocController, :post_details
+    post "/posts/create", DailyBlocController, :create_post
+    put "/posts/update/:id", DailyBlocController, :update_post
+    delete "/posts/delete/:id", DailyBlocController, :delete_post
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

@@ -28,14 +28,8 @@ defmodule ModaiBackendWeb.AuthController do
                 |> put_status(:ok)
                 |> json(%{
                   code: "000",
-                  message: "Login successful",
-                  access_token: access_token,
-                  user: %{
-                    id: user.id,
-                    username: user.username,
-                    email: user.email,
-                    role: user.role
-                  }
+                  message: "Đăng nhập thành công",
+                  access_token: access_token
                 })
 
               {:error, _reason} ->
