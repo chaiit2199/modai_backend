@@ -11,6 +11,7 @@ defmodule ModaiBackendWeb.Plugs.CORS do
     whitelist =
       (Application.get_env(:modai_backend, ModaiBackendWeb.Endpoint)[:allow_check_origin] || "")
       |> String.split(",")
+      |> IO.inspect(label: "whitelistwhitelistwhitelist")
 
     origin =
       with [host_request] <- Plug.Conn.get_req_header(conn, "origin"),
@@ -19,18 +20,19 @@ defmodule ModaiBackendWeb.Plugs.CORS do
         host_request
       else
         _ -> ""
-      end
+          end |> IO.inspect(label: "originoriginoriginorigin")
 
     # Kiểm tra xem có phải là auth route không
-    is_auth_route = String.starts_with?(conn.request_path, "/api/login") or
-                    String.starts_with?(conn.request_path, "/api/register") or
-                    String.starts_with?(conn.request_path, "/api/forgot-password") or
-                    String.starts_with?(conn.request_path, "/api/reset-password") or
-                    String.starts_with?(conn.request_path, "/api/refresh-token") or
-                    String.starts_with?(conn.request_path, "/api/posts/delete/:id") or
-                    String.starts_with?(conn.request_path, "/api/posts/update/:id") or
-                    String.starts_with?(conn.request_path, "/api/posts/update") or
-                    String.starts_with?(conn.request_path, "/api/posts/create")
+    is_auth_route =
+      String.starts_with?(conn.request_path, "/api/login") or
+      String.starts_with?(conn.request_path, "/api/register") or
+      String.starts_with?(conn.request_path, "/api/forgot-password") or
+      String.starts_with?(conn.request_path, "/api/reset-password") or
+      String.starts_with?(conn.request_path, "/api/refresh-token") or
+      String.starts_with?(conn.request_path, "/api/posts/delete/:id") or
+      String.starts_with?(conn.request_path, "/api/posts/update/:id") or
+      String.starts_with?(conn.request_path, "/api/posts/update") or
+      String.starts_with?(conn.request_path, "/api/posts/create")
 
     # Handle OPTIONS request first (preflight)
     if conn.method == "OPTIONS" do

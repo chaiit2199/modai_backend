@@ -1,11 +1,4 @@
-#     PHX_SERVER=true bin/modai_backend start
-#
-# Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
-# script that automatically sets the env var above.
-if System.get_env("PHX_SERVER") do
-  config :modai_backend, ModaiBackendWeb.Endpoint, server: true
-end
-
+import Config
 if config_env() == :prod do
 
   config :modai_backend, ModaiBackend.Repo,
@@ -33,13 +26,15 @@ if config_env() == :prod do
   http_port = String.to_integer(System.get_env("HTTP_PORT") || "8088")
   https_port = String.to_integer(System.get_env("HTTPS_PORT") || "4000")
   check_origin = System.get_env("CHECK_ORIGIN") |> String.split(",")
+  allow_check_origin = System.get_env("ALLOW_CHECK_ORIGIN") |> String.split(",")
 
   config :modai_backend, ModaiBackendWeb.Endpoint,
     server: true,
     url: [host: host, port: 443, scheme: "https"],
     http: [ip: {0, 0, 0, 0}, port: http_port],
     secret_key_base: secret_key_base,
-    check_origin: check_origin
+    check_origin: check_origin,
+    allow_check_origin: allow_check_origin
 
   config :modai_backend, ModaiBackend.Mailer,
     adapter: Swoosh.Adapters.SMTP,
