@@ -34,7 +34,10 @@ if config_env() == :prod do
     http: [ip: {0, 0, 0, 0}, port: http_port],
     secret_key_base: secret_key_base,
     check_origin: check_origin,
-    allow_check_origin: allow_check_origin
+    allow_check_origin: allow_check_origin,
+    API_KEY_GEMINI: System.get_env("API_KEY_GEMINI"),
+    URL_GEMINI: System.get_env("URL_GEMINI")
+
 
   config :modai_backend, ModaiBackend.Mailer,
     adapter: Swoosh.Adapters.SMTP,
@@ -58,4 +61,5 @@ if config_env() == :prod do
   # CORS Configuration
   config :modai_backend, ModaiBackendWeb.Plugs.CORS,
     allowed_origins: check_origin
+
 end

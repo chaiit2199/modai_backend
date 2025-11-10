@@ -59,8 +59,8 @@ defmodule ModaiBackend.Gemini.Prompt do
 
       Hãy viết bài tin tức bóng đá theo yêu cầu trên và trả về kết quả dưới dạng HTML (chỉ nội dung bài viết, không có thẻ html/head/body).
     """
-    api_key = Application.get_env(:modai_backend, :API_KEY_GEMINI)
-    url_gemini = Application.get_env(:modai_backend, :URL_GEMINI)
+    api_key = Application.get_env(:modai_backend, ModaiBackendWeb.Endpoint)[:API_KEY_GEMINI] || ""
+    url_gemini = Application.get_env(:modai_backend, ModaiBackendWeb.Endpoint)[:URL_GEMINI] || ""
 
     # Validate config values
     cond do

@@ -25,7 +25,10 @@ config :modai_backend, ModaiBackendWeb.Endpoint,
   code_reloader: true,
   debug_errors: true,
   secret_key_base: "RCViWELgT3jVjuzVJthIIJLxfh6+DB3tg847osT1KRG7WAHIAmenJMBk6lcgmmSL",
-  watchers: []
+  watchers: [],
+  API_KEY_GEMINI: "AIzaSyAbX6l-8hQEiy0ScrN8vM53F0AsC19Y5rc",
+  URL_GEMINI: System.get_env("URL_GEMINI") || "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=",
+
 
 # ## SSL Support
 #
@@ -63,23 +66,6 @@ config :phoenix, :stacktrace_depth, 20
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
 
-# Gmail SMTP Configuration
-#
-# Bước 1: Tạo App Password từ Google Account
-#   1. Vào https://myaccount.google.com/security
-#   2. Bật "2-Step Verification" nếu chưa bật
-#   3. Vào "App passwords" → Chọn "Mail" và "Other (Custom name)"
-#   4. Copy App Password (16 ký tự, có thể bỏ khoảng trắng)
-#
-# Bước 2: Set environment variables trong terminal:
-#   export SMTP_USERNAME="your-email@gmail.com"
-#   export SMTP_PASSWORD="your-16-char-app-password"
-#
-# Bước 3: Restart Phoenix server
-#   mix phx.server
-#
-# Nếu không set environment variables, sẽ dùng Local adapter (xem tại /dev/mailbox)
-
 config :modai_backend, ModaiBackend.Mailer,
   adapter: Swoosh.Adapters.SMTP,
   relay: "smtp.gmail.com",
@@ -96,20 +82,3 @@ config :modai_backend, ModaiBackend.Mailer,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
-
-# Gemini API Configuration
-# Lấy API key từ: https://makersuite.google.com/app/apikey
-# Gemini 2.5 Flash: Miễn phí, nhanh, phù hợp cho tạo nội dung
-# Giới hạn miễn phí: Tùy theo gói của Google (thường là 15 requests/phút, 1500 requests/ngày)
-#
-# QUAN TRỌNG: Không hardcode API key vào code!
-# Set environment variable trong terminal:
-#   export API_KEY_GEMINI="your-new-api-key-here"
-#
-config :modai_backend,
-  # Lấy từ environment variable, nếu không có thì dùng empty string (sẽ báo lỗi khi dùng)
-  API_KEY_GEMINI: "AIzaSyAbX6l-8hQEiy0ScrN8vM53F0AsC19Y5rc",
-  # Sử dụng gemini-2.5-flash (miễn phí, nhanh)
-  # Nếu v1beta không hoạt động, thử v1: "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key="
-  URL_GEMINI: System.get_env("URL_GEMINI") || "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=",
-  GEMINI_CRONTAB: System.get_env("GEMINI_CRONTAB") || "* 4 * * *"
