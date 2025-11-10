@@ -1,17 +1,3 @@
-import Config
-
-# config/runtime.exs is executed for all environments, including
-# during releases. It is executed after compilation and before the
-# system starts, so it is typically used to load production configuration
-# and secrets from environment variables or elsewhere. Do not define
-# any compile-time configuration in here, as it won't be applied.
-# The block below contains prod specific runtime configuration.
-
-# ## Using releases
-#
-# If you use `mix release`, you need to explicitly enable the server
-# by passing the PHX_SERVER=true when you start it:
-#
 #     PHX_SERVER=true bin/modai_backend start
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
@@ -44,8 +30,8 @@ if config_env() == :prod do
       """
 
   host = System.get_env("HOST") || "example.com"
-  http_port = String.to_integer(System.get_env("PORT") || "8088")
-  port = String.to_integer(System.get_env("PORT") || "4000")
+  http_port = String.to_integer(System.get_env("HTTP_PORT") || "8088")
+  https_port = String.to_integer(System.get_env("HTTPS_PORT") || "4000")
   check_origin = System.get_env("CHECK_ORIGIN") |> String.split(",")
 
   config :modai_backend, ModaiBackendWeb.Endpoint,
@@ -53,8 +39,7 @@ if config_env() == :prod do
     url: [host: host, port: 443, scheme: "https"],
     http: [ip: {0, 0, 0, 0}, port: http_port],
     secret_key_base: secret_key_base,
-    check_origin: check_origin,
-    url: [host: host, port: 443, scheme: "https"]
+    check_origin: check_origin
 
   config :modai_backend, ModaiBackend.Mailer,
     adapter: Swoosh.Adapters.SMTP,
