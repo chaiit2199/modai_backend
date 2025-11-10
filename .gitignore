@@ -26,3 +26,5 @@ erl_crash.dump
 modai_backend-*.tar
 
 /priv/
+
+/modaiAPI.pem
