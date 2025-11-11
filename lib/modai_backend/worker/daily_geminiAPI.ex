@@ -99,7 +99,7 @@ defmodule DailyGeminiAPI do
   Xóa các bài viết cũ, chỉ giữ lại 20 bài viết mới nhất.
   Trả về số lượng bài viết đã xóa.
   """
-  def keep_only_latest_posts(limit \\ 100) do
+  def keep_only_latest_posts(limit \\ 6) do
     # Lấy tất cả bài viết, sắp xếp theo inserted_at (mới nhất trước)
     all_posts = Post
       |> order_by([p], desc: p.inserted_at)
