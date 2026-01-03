@@ -21,13 +21,13 @@ config :modai_backend, ModaiBackendWeb.Endpoint,
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {127, 0, 0, 1}, port: String.to_integer(System.get_env("PORT") || "4000")],
   allow_check_origin: "localhost",
-  check_origin: false,
+  check_origin: "//localhost",
   code_reloader: true,
   debug_errors: true,
   secret_key_base: "RCViWELgT3jVjuzVJthIIJLxfh6+DB3tg847osT1KRG7WAHIAmenJMBk6lcgmmSL",
   watchers: [],
   API_KEY_GEMINI: "AIzaSyAbX6l-8hQEiy0ScrN8vM53F0AsC19Y5rc",
-  URL_GEMINI: System.get_env("URL_GEMINI") || "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="
+  URL_GEMINI: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="
 
 
 # ## SSL Support

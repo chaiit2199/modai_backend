@@ -25,18 +25,35 @@ if config_env() == :prod do
   host = System.get_env("HOST") || "example.com"
   http_port = String.to_integer(System.get_env("HTTP_PORT") || "8088")
   https_port = String.to_integer(System.get_env("HTTPS_PORT") || "4000")
+  allow_iframe = System.get_env("CHECK_ORIGIN") |> String.replace("//", "")
   check_origin = System.get_env("CHECK_ORIGIN") |> String.split(",")
-  allow_check_origin = System.get_env("ALLOW_CHECK_ORIGIN") |> String.split(",")
 
   config :modai_backend, ModaiBackendWeb.Endpoint,
     server: true,
-    url: [host: host, port: 443, scheme: "https"],
+    url: [
+      host: host,
+      port: if(host_scheme == "https", do: https_port, else: http_port),
+      scheme: host_scheme
+    ],
     http: [ip: {0, 0, 0, 0}, port: http_port],
     secret_key_base: secret_key_base,
     check_origin: check_origin,
-    allow_check_origin: allow_check_origin,
+    allow_check_origin: allow_iframe,
     API_KEY_GEMINI: System.get_env("API_KEY_GEMINI"),
     URL_GEMINI: System.get_env("URL_GEMINI")
+    if host_scheme == "https" do
+      host_cert_file = System.get_env("HOST_CERT_FILE") || raise "No host cert file config."
+      host_key_file = System.get_env("HOST_KEY_FILE") || raise "No host key file config."
+
+      config :apg_web, ApgWebWeb.Endpoint,
+        https: [
+          otp_app: :apg_web,
+          port: https_port,
+          cipher_suite: :strong,
+          keyfile: host_key_file,
+          certfile: host_cert_file
+        ]
+    end
 
 
   config :modai_backend, ModaiBackend.Mailer,

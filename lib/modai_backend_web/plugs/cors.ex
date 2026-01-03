@@ -9,6 +9,8 @@ defmodule ModaiBackendWeb.Plugs.CORS do
 
   def call(conn, _opts) do
     whitelist = (Application.get_env(:modai_backend, ModaiBackendWeb.Endpoint)[:allow_check_origin] || "")
+    |> String.split(",")
+
     origin =
       with [host_request] <- Plug.Conn.get_req_header(conn, "origin"),
           {:ok, %URI{host: host}} <- URI.new(host_request || ""),
@@ -16,7 +18,7 @@ defmodule ModaiBackendWeb.Plugs.CORS do
         host_request
       else
         _ -> ""
-          end |> IO.inspect(label: "originoriginoriginorigin")
+          end
 
     # Kiểm tra xem có phải là auth route không
     is_auth_route =
@@ -26,6 +28,7 @@ defmodule ModaiBackendWeb.Plugs.CORS do
       String.starts_with?(conn.request_path, "/api/reset-password") or
       String.starts_with?(conn.request_path, "/api/refresh-token") or
       String.starts_with?(conn.request_path, "/api/posts/delete/:id") or
+      String.starts_with?(conn.request_path, "/api/posts/delete/") or
       String.starts_with?(conn.request_path, "/api/posts/update/:id") or
       String.starts_with?(conn.request_path, "/api/posts/update") or
       String.starts_with?(conn.request_path, "/api/posts/create")

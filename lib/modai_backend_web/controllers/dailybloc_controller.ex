@@ -114,6 +114,8 @@ defmodule ModaiBackendWeb.DailyBlocController do
     category = params["category"] || params[:category]
     image = params["image"] || params[:image] || ""
 
+    params |> IO.inspect(label: "paramsparamsparamsparams")
+
     with {:ok, _} <- validate_create_params(email, username, title, category),
          {:ok, _user} <- validate_admin_user(username, email),
          {:ok, post} <- DailyGeminiAPI.create(title, category, image) do
@@ -124,7 +126,9 @@ defmodule ModaiBackendWeb.DailyBlocController do
         message: "Post created successfully",
         data: format_post_response(post)
       })
+      |> IO.inspect(label: "create_post")
     else
+
       {:error, :missing_email} ->
         send_error(conn, :bad_request, "001", "Email is required")
 
@@ -154,6 +158,7 @@ defmodule ModaiBackendWeb.DailyBlocController do
           message: "Failed to create post",
           errors: format_changeset_errors(changeset)
         })
+        |> IO.inspect(label: "1111111")
 
       {:error, reason} ->
         conn
@@ -163,6 +168,7 @@ defmodule ModaiBackendWeb.DailyBlocController do
           message: "Failed to create post",
           error: inspect(reason)
         })
+        |> IO.inspect(label: "222222222")
     end
   end
 
