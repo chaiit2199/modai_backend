@@ -38,7 +38,9 @@ Accounts.create_user(%{
     # Set role to admin directly in database
     case Accounts.update_user_role(user, "admin") do
       {:ok, admin_user} ->
-        IO.puts("✅ Created admin user: #{admin_user.username} (#{admin_user.email}) - Role: #{admin_user.role}")
+        IO.puts(
+          "✅ Created admin user: #{admin_user.username} (#{admin_user.email}) - Role: #{admin_user.role}"
+        )
 
       {:error, changeset} ->
         IO.puts("⚠️  Failed to set admin role")

@@ -1,11 +1,11 @@
-defmodule ModaiBackend.DailyBloc do
+defmodule ModaiBackend.Tuvi do
   @moduledoc """
-  The DailyBloc context.
+  The Tuvi context.
   """
 
   import Ecto.Query, warn: false
   alias ModaiBackend.Repo
-  alias ModaiBackend.DailyBloc.Post
+  alias ModaiBackend.Tuvi.Post
 
   @doc """
   Gets a single post by search.
@@ -95,6 +95,19 @@ defmodule ModaiBackend.DailyBloc do
     |> order_by([p], desc: p.published_at)
     |> order_by([p], desc: p.inserted_at)
     |> Repo.all()
+  end
+
+  @doc """
+  Xóa các bài viết có ngày đăng (published_at) nhỏ hơn ngày hiện tại.
+  Trả về số bài đã xóa.
+  """
+  def delete_posts_older_than_today do
+    today = Date.utc_today()
+    start_of_today_utc = DateTime.new!(today, ~T[00:00:00], "Etc/UTC")
+
+    Post
+    |> where([p], p.published_at < ^start_of_today_utc)
+    |> Repo.delete_all()
   end
 
   @doc """

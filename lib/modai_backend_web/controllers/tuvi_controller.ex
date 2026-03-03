@@ -1,15 +1,15 @@
-defmodule ModaiBackendWeb.DailyBlocController do
+defmodule ModaiBackendWeb.TuviController do
   use ModaiBackendWeb, :controller
-  alias ModaiBackend.DailyBloc
   alias ModaiBackend.Tuvi
   alias ModaiBackend.Accounts
   alias DailyGeminiAPI
 
   @doc """
-  Lấy 3 bài viết mới nhất.
+  Lấy 9 bài viết mới nhất. Trước khi trả về, xóa các bài có ngày đăng (published_at) nhỏ hơn ngày hiện tại.
   """
   def latest_posts(conn, _params) do
-    posts = DailyBloc.list_latest_posts(limit: 9)
+    _deleted_count = Tuvi.delete_posts_older_than_today()
+    posts = Tuvi.list_latest_posts(limit: 9)
 
     conn
     |> put_status(:ok)
@@ -35,7 +35,7 @@ defmodule ModaiBackendWeb.DailyBlocController do
   Lấy tất cả bài viết.
   """
   def all_posts(conn, _params) do
-    posts = DailyBloc.list_posts()
+    posts = Tuvi.list_posts()
 
     conn
     |> put_status(:ok)
@@ -74,7 +74,7 @@ defmodule ModaiBackendWeb.DailyBlocController do
         })
 
       true ->
-        case DailyBloc.get_post_by_search(search_id) do
+        case Tuvi.get_post_by_search(search_id) do
           nil ->
             conn
             |> put_status(:not_found)
@@ -106,22 +106,23 @@ defmodule ModaiBackendWeb.DailyBlocController do
 
   @doc """
   Tạo bài viết mới (chỉ dành cho admin).
-  Yêu cầu: email, username, title, và category.
-  Tùy chọn: image (mặc định là chuỗi rỗng nếu không truyền).
-  Sử dụng Gemini API để tạo nội dung tự động.
+  Yêu cầu: email, username, category, và prompt (block ngày: dương lịch, âm lịch, ngày hoàng đạo, sao, trực, giờ hoàng đạo, màu/số may mắn).
+  Tùy chọn: title (dùng khi không có prompt), image (mặc định chuỗi rỗng).
+  Sử dụng Gemini API để tạo nội dung tử vi tự động.
   """
   def create_post(conn, params) do
     email = params["email"] || params[:email]
     username = params["username"] || params[:username]
     title = params["title"] || params[:title]
     category = params["category"] || params[:category]
+    prompt = params["prompt"] || params[:prompt]
     image = params["image"] || params[:image] || ""
 
-    params |> IO.inspect(label: "paramsparamsparamsparams")
+    IO.inspect(validate_create_params_tuvi(email, username, category, prompt, title), label: "promptpromptprompt")
 
-    with {:ok, _} <- validate_create_params(email, username, title, category),
+    with {:ok, _} <- validate_create_params_tuvi(email, username, category, prompt, title),
          {:ok, _user} <- validate_admin_user(username, email),
-         {:ok, post} <- DailyGeminiAPI.create(title, category, image) do
+         {:ok, post} <- DailyGeminiAPI.create_tuvi(prompt || title, category, image) do
       conn
       |> put_status(:ok)
       |> json(%{
@@ -129,7 +130,6 @@ defmodule ModaiBackendWeb.DailyBlocController do
         message: "Post created successfully",
         data: format_post_response(post)
       })
-      |> IO.inspect(label: "create_post")
     else
       {:error, :missing_email} ->
         send_error(conn, :bad_request, "001", "Email is required")
@@ -137,8 +137,8 @@ defmodule ModaiBackendWeb.DailyBlocController do
       {:error, :missing_username} ->
         send_error(conn, :bad_request, "001", "Username is required")
 
-      {:error, :missing_title} ->
-        send_error(conn, :bad_request, "001", "Title is required")
+      {:error, :missing_prompt_or_title} ->
+        send_error(conn, :bad_request, "001", "Prompt (block ngày) hoặc title is required")
 
       {:error, :missing_category} ->
         send_error(conn, :bad_request, "001", "Category is required")
@@ -160,7 +160,21 @@ defmodule ModaiBackendWeb.DailyBlocController do
           message: "Failed to create post",
           errors: format_changeset_errors(changeset)
         })
-        |> IO.inspect(label: "1111111")
+
+      {:error, :missing_api_key} ->
+        send_error(conn, :service_unavailable, "009", "Gemini API key is not configured")
+
+      {:error, :missing_url} ->
+        send_error(conn, :service_unavailable, "009", "Gemini URL is not configured")
+
+      {:error, {:api_error, 403, %{"error" => %{"message" => msg}}}} ->
+        send_error(conn, :forbidden, "009", "Gemini API: #{msg}")
+
+      {:error, {:api_error, _status, body}} ->
+        message = extract_gemini_error_message(body)
+        conn
+        |> put_status(:internal_server_error)
+        |> json(%{code: "009", message: "Gemini API error", error: message})
 
       {:error, reason} ->
         conn
@@ -170,13 +184,12 @@ defmodule ModaiBackendWeb.DailyBlocController do
           message: "Failed to create post",
           error: inspect(reason)
         })
-        |> IO.inspect(label: "222222222")
     end
   end
 
   @doc """
-  Xóa bài viết theo id (chỉ dành cho admin).
-  Yêu cầu: email, username, và id bài viết.
+  Xóa bài viết theo id hoặc slug (search) – chỉ dành cho admin.
+  Yêu cầu: email, username, và id/slug bài viết.
   """
   def delete_post(conn, params) do
     email = params["email"] || params[:email]
@@ -202,57 +215,41 @@ defmodule ModaiBackendWeb.DailyBlocController do
   end
 
   defp do_delete_post(conn, post_id) do
-    case parse_post_id(post_id) do
-      {:ok, post_id_int} ->
-        with {:ok, post} <- get_post(post_id_int),
-             {:ok, deleted_post} <- DailyBloc.delete_post(post) do
-          send_delete_success(conn, deleted_post)
-        else
-          {:error, :post_not_found} -> send_error(conn, :not_found, "004", "Post not found")
-          {:error, changeset} -> send_delete_failed(conn, changeset)
-        end
+    post =
+      case parse_post_id(post_id) do
+        {:ok, post_id_int} -> Tuvi.get_post(post_id_int)
+        {:error, :invalid_post_id} -> Tuvi.get_post_by_search(post_id)
+      end
 
-      {:error, :invalid_post_id} ->
-        case Tuvi.get_post_by_search(post_id) do
-          nil ->
-            send_error(conn, :bad_request, "006", "Invalid post ID")
+    case post do
+      nil ->
+        send_error(conn, :not_found, "004", "Post not found")
 
-          post ->
-            case Tuvi.delete_post(post) do
-              {:ok, deleted_post} ->
-                send_delete_success(conn, deleted_post)
+      post ->
+        case Tuvi.delete_post(post) do
+          {:ok, deleted_post} ->
+            conn
+            |> put_status(:ok)
+            |> json(%{
+              code: "000",
+              message: "Post deleted successfully",
+              data: format_post_response(deleted_post)
+            })
 
-              {:error, changeset} ->
-                send_delete_failed(conn, changeset)
-            end
+          {:error, _changeset} ->
+            conn
+            |> put_status(:unprocessable_entity)
+            |> json(%{
+              code: "003",
+              message: "Failed to delete post"
+            })
         end
     end
   end
 
-  defp send_delete_success(conn, deleted_post) do
-    conn
-    |> put_status(:ok)
-    |> json(%{
-      code: "000",
-      message: "Post deleted successfully",
-      data: format_post_response(deleted_post)
-    })
-  end
-
-  defp send_delete_failed(conn, changeset) do
-    conn
-    |> put_status(:unprocessable_entity)
-    |> json(%{
-      code: "003",
-      message: "Failed to delete post",
-      errors: format_changeset_errors(changeset)
-    })
-  end
-
   @doc """
-  Cập nhật bài viết (chỉ dành cho admin).
-  Yêu cầu: email, username, và id bài viết.
-  Có thể cập nhật: title, search, content, category, image, published_at
+  Cập nhật bài viết theo id hoặc slug (search) – chỉ dành cho admin.
+  Yêu cầu: email, username, id/slug bài viết. Có thể cập nhật: title, search, content, category, image, published_at
   """
   def update_post(conn, params) do
     email = params["email"] || params[:email]
@@ -261,10 +258,9 @@ defmodule ModaiBackendWeb.DailyBlocController do
 
     with {:ok, _} <- validate_required_params(email, username, post_id),
          {:ok, _user} <- validate_admin_user(username, email),
-         {:ok, post_id_int} <- parse_post_id(post_id),
-         {:ok, post} <- get_post(post_id_int),
+         {:ok, post} <- get_post_by_id_or_search(post_id),
          {:ok, update_attrs} <- build_update_attrs(params),
-         {:ok, updated_post} <- DailyBloc.update_post(post, update_attrs) do
+         {:ok, updated_post} <- Tuvi.update_post(post, update_attrs) do
       conn
       |> put_status(:ok)
       |> json(%{
@@ -284,9 +280,6 @@ defmodule ModaiBackendWeb.DailyBlocController do
 
       {:error, :not_admin} ->
         send_error(conn, :forbidden, "002", "Access denied. Admin role required.")
-
-      {:error, :invalid_post_id} ->
-        send_error(conn, :bad_request, "006", "Invalid post ID")
 
       {:error, :post_not_found} ->
         send_error(conn, :not_found, "004", "Post not found")
@@ -311,12 +304,13 @@ defmodule ModaiBackendWeb.DailyBlocController do
   end
 
   # Validation helpers
-  defp validate_create_params(email, username, title, category) do
+  defp validate_create_params_tuvi(email, username, category, prompt, title) do
     cond do
       is_nil(email) or email == "" -> {:error, :missing_email}
       is_nil(username) or username == "" -> {:error, :missing_username}
-      is_nil(title) or title == "" -> {:error, :missing_title}
       is_nil(category) or category == "" -> {:error, :missing_category}
+      (is_nil(prompt) or prompt == "") and (is_nil(title) or title == "") ->
+        {:error, :missing_prompt_or_title}
       true -> {:ok, :valid}
     end
   end
@@ -351,8 +345,14 @@ defmodule ModaiBackendWeb.DailyBlocController do
 
   defp parse_post_id(_), do: {:error, :invalid_post_id}
 
-  defp get_post(post_id) do
-    case DailyBloc.get_post(post_id) do
+  defp get_post_by_id_or_search(post_id) do
+    post =
+      case parse_post_id(post_id) do
+        {:ok, post_id_int} -> Tuvi.get_post(post_id_int)
+        {:error, :invalid_post_id} -> Tuvi.get_post_by_search(post_id)
+      end
+
+    case post do
       nil -> {:error, :post_not_found}
       post -> {:ok, post}
     end
@@ -396,11 +396,9 @@ defmodule ModaiBackendWeb.DailyBlocController do
     })
   end
 
-  # Helper: chỉ thêm field vào map nếu giá trị không nil
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
-  # Helper: xử lý published_at datetime
   defp maybe_put_datetime(map, _key, nil), do: map
   defp maybe_put_datetime(map, _key, ""), do: map
 
@@ -416,7 +414,9 @@ defmodule ModaiBackendWeb.DailyBlocController do
 
   defp maybe_put_datetime(map, _key, _), do: map
 
-  # Format errors từ changeset
+  defp extract_gemini_error_message(%{"error" => %{"message" => msg}}) when is_binary(msg), do: msg
+  defp extract_gemini_error_message(body), do: inspect(body)
+
   defp format_changeset_errors(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
       Enum.reduce(opts, msg, fn {key, value}, acc ->
@@ -425,7 +425,6 @@ defmodule ModaiBackendWeb.DailyBlocController do
     end)
   end
 
-  # Format date từ DateTime sang string định dạng DD-MM-YYYY, HH:MM
   defp format_date(nil), do: ""
 
   defp format_date(datetime) do
@@ -433,23 +432,18 @@ defmodule ModaiBackendWeb.DailyBlocController do
     day = date.day |> Integer.to_string() |> String.pad_leading(2, "0")
     month = date.month |> Integer.to_string() |> String.pad_leading(2, "0")
     year = date.year |> Integer.to_string()
-
     hour = datetime.hour |> Integer.to_string() |> String.pad_leading(2, "0")
     minute = datetime.minute |> Integer.to_string() |> String.pad_leading(2, "0")
-
     "#{day}-#{month}-#{year}, #{hour}:#{minute}"
   end
 
-  # Tính thời gian đã trôi qua từ published_at đến hiện tại
   defp time_ago(nil), do: ""
 
   defp time_ago(published_at) do
-    # Tính chênh lệch trực tiếp từ UTC (chênh lệch thời gian không phụ thuộc vào timezone)
     now_utc = DateTime.utc_now()
     diff_seconds = DateTime.diff(now_utc, published_at, :second)
 
     cond do
-      # Nếu published_at ở tương lai (không nên xảy ra)
       diff_seconds < 0 ->
         "Vừa xong"
 

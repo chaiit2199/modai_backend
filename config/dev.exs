@@ -26,9 +26,9 @@ config :modai_backend, ModaiBackendWeb.Endpoint,
   debug_errors: true,
   secret_key_base: "RCViWELgT3jVjuzVJthIIJLxfh6+DB3tg847osT1KRG7WAHIAmenJMBk6lcgmmSL",
   watchers: [],
-  API_KEY_GEMINI: "AIzaSyAbX6l-8hQEiy0ScrN8vM53F0AsC19Y5rc",
-  URL_GEMINI: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="
-
+  API_KEY_GEMINI: "AIzaSyB1XaJjpOeeB2klan9mY7Ij0-sDDY4eSVM",
+  URL_GEMINI:
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="
 
 # ## SSL Support
 #
@@ -70,7 +70,8 @@ config :modai_backend, ModaiBackend.Mailer,
   adapter: Swoosh.Adapters.SMTP,
   relay: "smtp.gmail.com",
   username: "chaiit2199@gmail.com",
-  password: "ptwgutbreoowsdtu",  # App Password (bỏ khoảng trắng)
+  # App Password (bỏ khoảng trắng)
+  password: "ptwgutbreoowsdtu",
   ssl: false,
   tls: :always,
   tls_options: [

@@ -4,6 +4,7 @@ defmodule DailyGeminiAPI do
   alias ModaiBackend.Gemini.Prompt
   alias ModaiBackend.DailyBloc
   alias ModaiBackend.DailyBloc.Post
+  alias ModaiBackend.Tuvi
   alias ModaiBackend.Repo
 
   # Client API
@@ -43,13 +44,13 @@ defmodule DailyGeminiAPI do
           search = batch_string(title)
 
           case DailyBloc.create_post(%{
-            title: title,
-            search: search,
-            category: category,
-            content: html_content,
-            image: image || "",
-            published_at: DateTime.truncate(DateTime.utc_now(), :second)
-          }) do
+                 title: title,
+                 search: search,
+                 category: category,
+                 content: html_content,
+                 image: image || "",
+                 published_at: DateTime.truncate(DateTime.utc_now(), :second)
+               }) do
             {:ok, post} ->
               {:ok, post}
 
@@ -72,27 +73,83 @@ defmodule DailyGeminiAPI do
     end
   end
 
+  @doc """
+  Tạo bài viết tử vi: gọi Gemini với prompt (block ngày). Category mặc định "".
+  Dùng khi gọi từ IEx với một tham số: create_tuvi("Dương lịch ...").
+  """
+  def create_tuvi(prompt) when is_binary(prompt), do: create_tuvi(prompt, "", "")
+
+  @doc """
+  Tạo bài viết tử vi: gọi Gemini (call_api_tuvi) với prompt (block ngày), category, lưu vào Tuvi.
+  """
+  def create_tuvi(prompt, category, image \\ "") do
+    case Prompt.call_api_tuvi(prompt, category) do
+      {:ok, html_content} when is_binary(html_content) ->
+        if String.contains?(html_content, "<") do
+          raw_title = extract_title(html_content) || prompt
+          title = String.slice(raw_title, 0, 255)
+          search = batch_string(raw_title) |> String.slice(0, 255)
+
+          case Tuvi.create_post(%{
+                 title: title,
+                 search: search,
+                 category: category,
+                 content: html_content,
+                 image: image || "",
+                 published_at: DateTime.truncate(DateTime.utc_now(), :second)
+               }) do
+            {:ok, post} ->
+              {:ok, post}
+
+            {:error, changeset} ->
+              IO.puts("❌ DB error khi lưu bài tuvi: #{inspect(changeset.errors)}")
+              {:error, changeset}
+          end
+        else
+          IO.puts("⚠️ Response không phải HTML format, bỏ qua")
+          {:error, :not_html}
+        end
+
+      {:error, {:request_error, %Req.TransportError{reason: :timeout}}} ->
+        IO.puts("⏱Timeout")
+        {:error, :timeout}
+
+      {:error, reason} ->
+        IO.puts("Error: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
   defp extract_title(html_content) do
     # Trích xuất tiêu đề từ thẻ <h1>
     case Regex.run(~r/<h1[^>]*>(.*?)<\/h1>/is, html_content) do
       [_, title] ->
         title
-        |> String.replace(~r/<[^>]+>/, "")  # Loại bỏ các thẻ HTML bên trong
+        # Loại bỏ các thẻ HTML bên trong
+        |> String.replace(~r/<[^>]+>/, "")
         |> String.trim()
-      _ -> nil
+
+      _ ->
+        nil
     end
   end
+
   # Kiểm tra xem topic có phải là tin cũ không
   def batch_string(string) do
     (string || "")
     |> String.downcase()
     |> String.normalize(:nfd)
     |> String.replace("đ", "d")
-    |> String.replace(~r/\p{Mn}/u, "")           # Bỏ dấu tiếng Việt
-    |> String.replace(~r/[^a-z0-9\s-]/u, "")     # Bỏ dấu câu và ký tự đặc biệt (bao gồm dấu gạch ngang)
-    |> String.replace(~r/\s+/, "-")              # Thay thế khoảng trắng bằng dấu -
-    |> String.trim()                            # Loại bỏ khoảng trắng thừa cuối chuỗi
-    |> String.replace(~r/^\s*cau-hoi-\d+-/, "")  # Loại bỏ "cau-hoi-X-" (cả chữ và số)
+    # Bỏ dấu tiếng Việt
+    |> String.replace(~r/\p{Mn}/u, "")
+    # Bỏ dấu câu và ký tự đặc biệt (bao gồm dấu gạch ngang)
+    |> String.replace(~r/[^a-z0-9\s-]/u, "")
+    # Thay thế khoảng trắng bằng dấu -
+    |> String.replace(~r/\s+/, "-")
+    # Loại bỏ khoảng trắng thừa cuối chuỗi
+    |> String.trim()
+    # Loại bỏ "cau-hoi-X-" (cả chữ và số)
+    |> String.replace(~r/^\s*cau-hoi-\d+-/, "")
   end
 
   @doc """
@@ -101,7 +158,8 @@ defmodule DailyGeminiAPI do
   """
   def keep_only_latest_posts(limit \\ 6) do
     # Lấy tất cả bài viết, sắp xếp theo inserted_at (mới nhất trước)
-    all_posts = Post
+    all_posts =
+      Post
       |> order_by([p], desc: p.inserted_at)
       |> Repo.all()
 
@@ -110,11 +168,11 @@ defmodule DailyGeminiAPI do
     keep_ids = Enum.map(posts_to_keep, & &1.id)
 
     # Xóa các bài viết còn lại
-    deleted_count = Post
+    deleted_count =
+      Post
       |> where([p], p.id not in ^keep_ids)
       |> Repo.delete_all()
 
     {:ok, deleted_count}
   end
-
 end

@@ -25,7 +25,6 @@ defmodule ModaiBackendWeb.Endpoint do
     from: :modai_backend,
     only: ModaiBackendWeb.static_paths()
 
-
   plug Phoenix.LiveDashboard.RequestLogger,
     param_key: "request_logger",
     cookie_key: "request_logger"

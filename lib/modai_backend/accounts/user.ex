@@ -24,7 +24,9 @@ defmodule ModaiBackend.Accounts.User do
     |> cast(attrs, [:username, :email, :password])
     |> validate_required([:username, :email, :password])
     |> validate_length(:username, min: 3, max: 50)
-    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "can only contain letters, numbers, and underscores")
+    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/,
+      message: "can only contain letters, numbers, and underscores"
+    )
     |> validate_format(:email, @email_regex, message: "must be a valid email")
     |> validate_length(:email, max: 255)
     |> validate_length(:password, min: 6)
@@ -44,7 +46,9 @@ defmodule ModaiBackend.Accounts.User do
 
   defp put_default_role(changeset), do: changeset
 
-  defp put_password_hash(%Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset) do
+  defp put_password_hash(
+         %Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset
+       ) do
     change(changeset, password_hash: Bcrypt.hash_pwd_salt(password))
   end
 

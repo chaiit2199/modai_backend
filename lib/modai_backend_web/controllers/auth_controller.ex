@@ -20,16 +20,19 @@ defmodule ModaiBackendWeb.AuthController do
                 conn
                 |> put_resp_cookie("refresh_token", refresh_token,
                   http_only: true,
-                  secure: false, # Set to true in production with HTTPS
+                  # Set to true in production with HTTPS
+                  secure: false,
                   same_site: "Lax",
-                  max_age: 1 * 24 * 60 * 60, # 1 day in seconds
+                  # 1 day in seconds
+                  max_age: 1 * 24 * 60 * 60,
                   path: "/"
                 )
                 |> put_status(:ok)
                 |> json(%{
                   code: "000",
                   message: "Đăng nhập thành công",
-                  access_token: access_token
+                  access_token: access_token,
+                  email: user.email
                 })
 
               {:error, _reason} ->
@@ -72,6 +75,7 @@ defmodule ModaiBackendWeb.AuthController do
   def register(conn, %{"username" => _, "email" => _, "password" => _} = params) do
     # Remove role from params if present (role is set in database only)
     params = Map.drop(params, ["role"])
+
     case Accounts.create_user(params) do
       {:ok, _user} ->
         conn
@@ -137,7 +141,8 @@ defmodule ModaiBackendWeb.AuthController do
               code: "010",
               message: "Không thể gửi email. Vui lòng kiểm tra lại cấu hình SMTP.",
               error: inspect(reason),
-              reset_token: user.reset_token  # Trả về token để test
+              # Trả về token để test
+              reset_token: user.reset_token
             })
         end
 
@@ -248,7 +253,8 @@ defmodule ModaiBackendWeb.AuthController do
                 |> json(%{
                   code: "000",
                   message: "Token refreshed successfully",
-                  access_token: access_token
+                  access_token: access_token,
+                  email: user.email
                 })
 
               {:error, _reason} ->

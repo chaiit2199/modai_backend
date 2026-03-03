@@ -14,7 +14,7 @@ defmodule ModaiBackendWeb.Auth.JWT do
   """
   def generate_access_token(user) do
     now = DateTime.utc_now() |> DateTime.to_unix()
-    exp = now + (@access_token_expiration_minutes * 60)
+    exp = now + @access_token_expiration_minutes * 60
 
     extra_claims = %{
       "sub" => to_string(user.id),
@@ -70,7 +70,9 @@ defmodule ModaiBackendWeb.Auth.JWT do
           "access" -> {:ok, claims}
           _ -> {:error, :invalid_token_type}
         end
-      error -> error
+
+      error ->
+        error
     end
   end
 

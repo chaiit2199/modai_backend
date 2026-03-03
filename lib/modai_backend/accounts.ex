@@ -98,7 +98,10 @@ defmodule ModaiBackend.Accounts do
         user
         |> Ecto.Changeset.change()
         |> Ecto.Changeset.put_change(:reset_token, reset_token)
-        |> Ecto.Changeset.put_change(:reset_token_sent_at, DateTime.truncate(DateTime.utc_now(), :second))
+        |> Ecto.Changeset.put_change(
+          :reset_token_sent_at,
+          DateTime.truncate(DateTime.utc_now(), :second)
+        )
         |> Repo.update()
     end
   end
@@ -122,7 +125,10 @@ defmodule ModaiBackend.Accounts do
         case user
              |> Ecto.Changeset.change()
              |> Ecto.Changeset.put_change(:reset_token, reset_token)
-             |> Ecto.Changeset.put_change(:reset_token_sent_at, DateTime.truncate(DateTime.utc_now(), :second))
+             |> Ecto.Changeset.put_change(
+               :reset_token_sent_at,
+               DateTime.truncate(DateTime.utc_now(), :second)
+             )
              |> Repo.update() do
           {:ok, updated_user} -> {:ok, updated_user}
           error -> error
@@ -184,7 +190,8 @@ defmodule ModaiBackend.Accounts do
     Enum.find_value(users, fn user ->
       if Bcrypt.verify_pass(refresh_token, user.refresh_token_hash) do
         # Check if token is expired
-        if user.refresh_token_expires_at && DateTime.compare(user.refresh_token_expires_at, DateTime.utc_now()) == :gt do
+        if user.refresh_token_expires_at &&
+             DateTime.compare(user.refresh_token_expires_at, DateTime.utc_now()) == :gt do
           user
         else
           nil

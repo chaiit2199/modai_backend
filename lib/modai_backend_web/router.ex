@@ -6,6 +6,8 @@ defmodule ModaiBackendWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # Route delete không cần prefix /api (client có thể gọi DELETE /posts/delete/:id hoặc /tuvi/delete/:id)
+
   scope "/api", ModaiBackendWeb do
     pipe_through :api
 
@@ -22,6 +24,14 @@ defmodule ModaiBackendWeb.Router do
     post "/posts/create", DailyBlocController, :create_post
     put "/posts/update/:id", DailyBlocController, :update_post
     delete "/posts/delete/:id", DailyBlocController, :delete_post
+
+    # Tuvi API
+    get "/tuvi/latest", TuviController, :latest_posts
+    get "/tuvi", TuviController, :all_posts
+    get "/tuvi/:id", TuviController, :post_details
+    post "/tuvi/create", TuviController, :create_post
+    put "/tuvi/update/:id", TuviController, :update_post
+    delete "/tuvi/delete/:id", TuviController, :delete_post
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
