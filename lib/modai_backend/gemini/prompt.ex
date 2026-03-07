@@ -82,7 +82,8 @@ defmodule ModaiBackend.Gemini.Prompt do
 
     prompt_with_format = """
       YÊU CẦU VỀ SEO VÀ TIÊU ĐỀ (RẤT QUAN TRỌNG):
-      - Tiêu đề <h1> phải HẤP DẪN, GỢI TÒ MÒ, dài 55-75 ký tự, thu hút lượt xem
+      - Tiêu đề <h1> phải GIẬT GÂN, GÂY SỰ CHÚ Ý, khiến người đọc muốn bấm vào ngay (kiểu headline thu hút, gợi tò mò, tạo cảm giác khẩn cấp hoặc lợi ích rõ ràng)
+      - Dài 55-75 ký tự, dùng từ mạnh, cụ thể, tránh tiêu đề chung chung nhàm chán
       - Bắt buộc kết thúc tiêu đề bằng ngày dương lịch trong ngoặc: (DD/MM/YYYY) – lấy từ thông tin ngày bên dưới
       - Sử dụng từ khóa tự nhiên trong nội dung (tử vi, kiêng kỵ, nên làm...)
       - Mỗi đoạn <p> nên có 2-4 câu, dễ đọc
@@ -143,10 +144,12 @@ defmodule ModaiBackend.Gemini.Prompt do
     - Không viết nội dung kiểu dự đoán số phận.
     - Nội dung phải xoay quanh: hành động cụ thể nên thực hiện trong ngày.
 
-    FORMAT TIÊU ĐỀ (NGÀY TỐT – BẮT BUỘC):
-    - Cấu trúc: "Ngày Đại Cát: [Cụm ngắn gọn về việc nên làm/cơ hội] – [Lời chúc/Vạn sự như ý] (DD/MM/YYYY)"
-    - Ví dụ: "Ngày Đại Cát: Khai Trương Hồng Phát – Vạn Sự Như Ý (04/03/2026)"
-    - Ví dụ khác: "Ngày Đại Cát: Cưới Hỏi Đại Lợi – Tài Lộc Hanh Thông (05/03/2026)"
+    FORMAT TIÊU ĐỀ (NGÀY TỐT – GIẬT GÂN, THU HÚT):
+    - Tiêu đề phải tạo cảm giác "đừng bỏ lỡ", "cơ hội vàng", lợi ích cụ thể (tài lộc, thành công, hanh thông).
+    - Cấu trúc gợi ý: "Ngày Đại Cát: [Việc nên làm + lợi ích hấp dẫn] – [Kết quả mong đợi/Lời chúc mạnh] (DD/MM/YYYY)"
+    - Ví dụ giật gân: "Ngày Đại Cát: Khai Trương Hôm Nay – Tài Lộc Ùn Ùn, Làm Ăn Phát Đạt (04/03/2026)"
+    - Ví dụ: "Ngày Vàng Cưới Hỏi: Hạnh Phúc Trọn Đời – Đừng Bỏ Lỡ Ngày Tốt Hiếm Có (05/03/2026)"
+    - Ví dụ: "Tử Vi 06/03: Ngày Cực Tốt Động Thổ, Ký Hợp Đồng – Lợi Lộc Bền Vững (06/03/2026)"
     - DD/MM/YYYY lấy từ ngày dương lịch trong block thông tin ngày. Tiêu đề phải kết thúc bằng (ngày).
 
     Bắt buộc nội dung:
@@ -173,12 +176,13 @@ defmodule ModaiBackend.Gemini.Prompt do
     - Không viết về cung hoàng đạo.
     - Không viết lan sang vận mệnh dài hạn.
 
-    FORMAT TIÊU ĐỀ (NGÀY XẤU / CẦN THẬN – BẮT BUỘC, THU HÚT LƯỢT XEM):
-    - Cấu trúc: "Ngày [Cảnh báo]: [Việc cần tránh/Điểm nguy] – [Lời khuyên ngắn] (DD/MM/YYYY)"
-    - Dùng các cụm gợi tò mò: "Ngày Cần Thận", "Ngày Kiêng Kỵ", "Ngày Hắc Đạo" kết hợp nội dung cụ thể.
-    - Ví dụ: "Ngày Cần Thận: Tránh Động Thổ, Ký Hợp Đồng – Xem Tử Vi Để An Toàn (04/03/2026)"
-    - Ví dụ: "Ngày Kiêng Kỵ: Khai Trương Dễ Thất Bát – Chọn Ngày Khác Để Hưng Thịnh (05/03/2026)"
-    - Ví dụ: "Ngày Hắc Đạo: Cưới Hỏi Kỵ – Đợi Ngày Hoàng Đạo Để Hạnh Phúc (06/03/2026)"
+    FORMAT TIÊU ĐỀ (NGÀY XẤU – GIẬT GÂN, CẢNH BÁO MẠNH):
+    - Tiêu đề phải gây chú ý, tạo cảm giác "phải đọc để tránh rủi ro", dùng từ cảnh báo rõ ràng (tránh ngay, kỵ, dễ hao tài, dễ thất bát…).
+    - Cấu trúc gợi ý: "Ngày [Cảnh báo mạnh]: [Việc nguy hiểm/cần tránh] – [Hậu quả hoặc lời khuyên gây tò mò] (DD/MM/YYYY)"
+    - Ví dụ giật gân: "Cảnh Báo: Ngày Này Khai Trương Dễ Phá Sản – Xem Ngay Để Tránh Hao Tài (04/03/2026)"
+    - Ví dụ: "Ngày Đại Kỵ: Động Thổ, Cưới Hỏi Dễ Gặp Họa – Đừng Coi Thường Tử Vi (05/03/2026)"
+    - Ví dụ: "Tử Vi 06/03: Ngày Hắc Đạo – Làm Việc Lớn Dễ Thất Bát, Đọc Để Biết Tránh (06/03/2026)"
+    - Ví dụ: "Ngày Cần Thận: Ký Hợp Đồng Hôm Nay Dễ Tranh Chấp – Xem Chi Tiết Trong Bài (07/03/2026)"
     - DD/MM/YYYY lấy từ ngày dương lịch trong block thông tin ngày. Tiêu đề phải kết thúc bằng (ngày).
 
     Bắt buộc nội dung:

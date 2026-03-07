@@ -89,6 +89,7 @@ defmodule DailyGeminiAPI do
           raw_title = extract_title(html_content) || prompt
           title = String.slice(raw_title, 0, 255)
           search = batch_string(raw_title) |> String.slice(0, 255)
+          published_at = parse_published_at_from_tuvi_prompt(prompt)
 
           case Tuvi.create_post(%{
                  title: title,
@@ -96,7 +97,7 @@ defmodule DailyGeminiAPI do
                  category: category,
                  content: html_content,
                  image: image || "",
-                 published_at: DateTime.truncate(DateTime.utc_now(), :second)
+                 published_at: published_at
                }) do
             {:ok, post} ->
               {:ok, post}
@@ -131,6 +132,31 @@ defmodule DailyGeminiAPI do
 
       _ ->
         nil
+    end
+  end
+
+  @doc """
+  Parse ngày dương lịch từ prompt tử vi (vd: "Dương lịch: 07 / 03 / 2026" hoặc "Prompt1: Dương lịch: 07/03/2026").
+  Trả về DateTime 00:00:00 UTC của ngày đó để gán vào published_at; nếu không parse được thì dùng thời điểm hiện tại.
+  """
+  def parse_published_at_from_tuvi_prompt(prompt) when is_binary(prompt) do
+    # Match "Dương lịch: DD / MM / YYYY" hoặc "Dương lịch: DD/MM/YYYY" (có thể có khoảng trắng quanh /)
+    case Regex.run(~r/Dương lịch\s*:\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})/u, prompt, capture: :all_but_first) do
+      [day_str, month_str, year_str] ->
+        day = String.to_integer(day_str)
+        month = String.to_integer(month_str)
+        year = String.to_integer(year_str)
+
+        case Date.new(year, month, day) do
+          {:ok, date} ->
+            DateTime.new!(date, ~T[00:00:00], "Etc/UTC")
+
+          _ ->
+            DateTime.truncate(DateTime.utc_now(), :second)
+        end
+
+      _ ->
+        DateTime.truncate(DateTime.utc_now(), :second)
     end
   end
 
