@@ -93,6 +93,8 @@ defmodule ModaiBackendWeb.Plugs.OriginAllowlist do
     whitelist = get_origins_list()
     origin_value = get_origin_value(conn)
 
+    Logger.info("get_origins: #{inspect(whitelist)} #{inspect(origin_value)}")
+
     case origin_value do
       nil -> []
       value -> if origin_in_whitelist?(value, whitelist), do: [value], else: []
