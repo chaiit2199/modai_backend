@@ -74,12 +74,4 @@ if config_env() == :prod do
     issuer: "modai_backend",
     secret_key: secret_key_base
 
-  # Khi proxy strip header Origin: set ORIGIN_FALLBACK_HEADER=x-original-origin
-  # và trên Nginx: proxy_set_header X-Original-Origin $http_origin;
-  case System.get_env("ORIGIN_FALLBACK_HEADER") |> Kernel.||("") |> String.trim() do
-    "" -> nil
-    header ->
-      config :modai_backend, ModaiBackendWeb.Plugs.OriginAllowlist,
-        origin_fallback_header: header
-  end
 end
