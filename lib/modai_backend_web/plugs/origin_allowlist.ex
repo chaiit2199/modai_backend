@@ -4,6 +4,7 @@ defmodule ModaiBackendWeb.Plugs.OriginAllowlist do
   Use with CORSPlug: this plug runs first and halts; CORSPlug sets CORS headers.
   """
 
+  require Logger
   import Plug.Conn
 
   def init(opts), do: opts
@@ -68,6 +69,11 @@ defmodule ModaiBackendWeb.Plugs.OriginAllowlist do
   end
 
   defp forbidden(conn, reason, received_origin) do
+    Logger.info(
+      "OriginAllowlist 403 path=#{conn.request_path} reason=#{reason}" <>
+        if(received_origin, do: " received_origin=#{received_origin}", else: "")
+    )
+
     body =
       %{error: "origin not allowed", reason: reason}
       |> maybe_put(:received_origin, received_origin)
