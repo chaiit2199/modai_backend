@@ -41,6 +41,7 @@ defmodule ModaiBackendWeb.Plugs.OriginAllowlist do
 
   # Đọc Origin theo thứ tự: 1) origin  2) header fallback (X-Requested-Origin)  3) Referer
   defp get_origin_value(conn) do
+    IO.inspect(conn)
     case Plug.Conn.get_req_header(conn, "origin") do
       [v | _] when is_binary(v) and v != "" -> v
       _ -> origin_fallback_header(conn) || referer_as_origin(conn)
