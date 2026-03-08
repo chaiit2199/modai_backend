@@ -24,6 +24,7 @@ config :modai_backend, ModaiBackendWeb.Endpoint,
   check_origin: "//localhost",
   code_reloader: true,
   debug_errors: true,
+  x_authen_key: "mJRBsLhaR/rj6e+VUdQjW6/lIt6wECm6K9VcQYFTs//RcQoG8nuKjWTMGpDdht3o",
   secret_key_base: "RCViWELgT3jVjuzVJthIIJLxfh6+DB3tg847osT1KRG7WAHIAmenJMBk6lcgmmSL",
   watchers: [],
   API_KEY_GEMINI: "AIzaSyB1XaJjpOeeB2klan9mY7Ij0-sDDY4eSVM",
@@ -52,10 +53,6 @@ config :modai_backend, ModaiBackendWeb.Endpoint,
 # If desired, both `http:` and `https:` keys can be
 # configured to run both http and https servers on
 # different ports.
-
-# Cho phép request không có header Origin trong dev (Postman, curl, same-origin)
-config :modai_backend, ModaiBackendWeb.Plugs.OriginAllowlist,
-  block_missing_origin: false
 
 # Enable dev routes for dashboard and mailbox
 config :modai_backend, dev_routes: true

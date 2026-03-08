@@ -39,7 +39,8 @@ if config_env() == :prod do
     check_origin: check_origin,
     allow_check_origin: allow_iframe,
     API_KEY_GEMINI: System.get_env("API_KEY_GEMINI"),
-    URL_GEMINI: System.get_env("URL_GEMINI")
+    URL_GEMINI: System.get_env("URL_GEMINI"),
+    x_authen_key: System.get_env("X_AUTHEN_KEY") || raise("No X_AUTHEN_KEY config.")
 
   if host_scheme == "https" do
     host_cert_file = System.get_env("HOST_CERT_FILE") || raise "No host cert file config."
@@ -74,4 +75,23 @@ if config_env() == :prod do
     issuer: "modai_backend",
     secret_key: secret_key_base
 
+  # Chặn đầu /api bằng header x-authen-key (trùng X_AUTHEN_KEY trong env), lưu vào Endpoint
+  case System.get_env("X_AUTHEN_KEY") |> Kernel.||("") |> String.trim() do
+    "" -> nil
+    key ->
+      config :modai_backend, ModaiBackendWeb.Endpoint,
+        x_authen_key: key
+  end
+else
+  # dev/test: đọc X_AUTHEN_KEY và log để check, set vào Endpoint
+  case System.get_env("X_AUTHEN_KEY") |> Kernel.||("") |> String.trim() do
+    "" ->
+      IO.puts("[dev] X_AUTHEN_KEY not set")
+
+    key ->
+      config :modai_backend, ModaiBackendWeb.Endpoint,
+        x_authen_key: key
+
+      IO.puts("[dev] X_AUTHEN_KEY is set (length=#{String.length(key)})")
+  end
 end
