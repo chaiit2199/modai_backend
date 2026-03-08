@@ -12,10 +12,13 @@ defmodule ModaiBackendWeb.Plugs.OriginAllowlist do
   def call(conn, _opts) do
     # Only check origin for /api (and /api/*) so dev tools (LiveDashboard, etc.) still work
     if not api_request?(conn) do
+      Logger.info("call_origins: not api_request?")
       conn
     else
       whitelist = get_origins_list()
       origin_value = get_origin_value(conn)
+
+      Logger.info("call_origins: #{inspect(whitelist)} #{inspect(origin_value)}")
 
       # Whitelist rỗng = không cho phép bất kỳ origin nào (kể cả request không có Origin)
       if whitelist == [] do
