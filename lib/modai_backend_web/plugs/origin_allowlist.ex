@@ -14,28 +14,49 @@ defmodule ModaiBackendWeb.Plugs.OriginAllowlist do
       conn
     else
       whitelist = get_origins_list()
+      origin_value = get_origin_value(conn)
 
       # Whitelist rỗng = không cho phép bất kỳ origin nào (kể cả request không có Origin)
       if whitelist == [] do
-        forbidden(conn)
+        forbidden(conn, "empty_whitelist", nil)
       else
-        case Plug.Conn.get_req_header(conn, "origin") do
-          [origin_value | _] ->
-            if origin_in_whitelist?(origin_value, whitelist) do
-              conn
+        case origin_value do
+          nil ->
+            if block_missing_origin?() do
+              forbidden(conn, "missing_origin", nil)
             else
-              forbidden(conn)
+              conn
             end
 
-          [] ->
-            # No Origin: block unless config allows (e.g. for Postman in dev set block_missing_origin: false)
-            if block_missing_origin?() do
-              forbidden(conn)
-            else
+          value ->
+            if origin_in_whitelist?(value, whitelist) do
               conn
+            else
+              forbidden(conn, "origin_not_allowed", value)
             end
         end
       end
+    end
+  end
+
+  # Đọc Origin từ header "origin", hoặc từ header fallback (vd X-Original-Origin) khi proxy strip Origin
+  defp get_origin_value(conn) do
+    case Plug.Conn.get_req_header(conn, "origin") do
+      [v | _] when is_binary(v) and v != "" -> v
+      _ -> origin_fallback_header(conn)
+    end
+  end
+
+  defp origin_fallback_header(conn) do
+    case Application.get_env(:modai_backend, ModaiBackendWeb.Plugs.OriginAllowlist, [])
+         |> Keyword.get(:origin_fallback_header) do
+      nil -> nil
+      "" -> nil
+      header ->
+        case Plug.Conn.get_req_header(conn, header) do
+          [v | _] when is_binary(v) and v != "" -> v
+          _ -> nil
+        end
     end
   end
 
@@ -46,23 +67,29 @@ defmodule ModaiBackendWeb.Plugs.OriginAllowlist do
     |> Keyword.get(:block_missing_origin, true)
   end
 
-  defp forbidden(conn) do
+  defp forbidden(conn, reason, received_origin) do
+    body =
+      %{error: "origin not allowed", reason: reason}
+      |> maybe_put(:received_origin, received_origin)
+      |> Jason.encode!()
+
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(:forbidden, ~s|{"error":"origin not allowed"}|)
+    |> send_resp(:forbidden, body)
     |> halt()
   end
+
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, key, val), do: Map.put(map, key, val)
 
   @doc "Returns list of allowed origins for this request (used by CORSPlug with arity 1)."
   def get_origins(conn) do
     whitelist = get_origins_list()
+    origin_value = get_origin_value(conn)
 
-    case Plug.Conn.get_req_header(conn, "origin") do
-      [origin_value | _] ->
-        if origin_in_whitelist?(origin_value, whitelist), do: [origin_value], else: []
-
-      [] ->
-        []
+    case origin_value do
+      nil -> []
+      value -> if origin_in_whitelist?(value, whitelist), do: [value], else: []
     end
   end
 
@@ -80,8 +107,11 @@ defmodule ModaiBackendWeb.Plugs.OriginAllowlist do
         # Full origin: compare normalized (scheme + host + port)
         normalize_origin(origin_value) == normalize_origin(allowed)
       else
-        # Host only (e.g. "localhost", "lichtot365.com"): match if request origin has this host
-        origin_host(origin_value) == String.downcase(allowed)
+        # Host only (e.g. "localhost", "lichtot365.com"): exact host hoặc subdomain
+        allowed_lower = String.downcase(allowed)
+        req_host = origin_host(origin_value)
+        req_host == allowed_lower or
+          (req_host != nil and String.ends_with?(req_host, "." <> allowed_lower))
       end
     end)
   end
