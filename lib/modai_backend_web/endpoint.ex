@@ -39,7 +39,8 @@ defmodule ModaiBackendWeb.Endpoint do
 
   plug Plug.MethodOverride
   plug Plug.Head
-  plug ModaiBackendWeb.Plugs.CORS
+  plug ModaiBackendWeb.Plugs.OriginAllowlist
+  plug CORSPlug, origin: &ModaiBackendWeb.Plugs.OriginAllowlist.get_origins/1
   plug Plug.Session, @session_options
   plug ModaiBackendWeb.Router
 end

@@ -2,7 +2,6 @@ defmodule ModaiBackendWeb.Router do
   use ModaiBackendWeb, :router
 
   pipeline :api do
-    plug ModaiBackendWeb.Plugs.CORS
     plug :accepts, ["json"]
   end
 

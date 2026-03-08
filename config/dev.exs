@@ -53,6 +53,10 @@ config :modai_backend, ModaiBackendWeb.Endpoint,
 # configured to run both http and https servers on
 # different ports.
 
+# Cho phép request không có header Origin trong dev (Postman, curl, same-origin)
+config :modai_backend, ModaiBackendWeb.Plugs.OriginAllowlist,
+  block_missing_origin: false
+
 # Enable dev routes for dashboard and mailbox
 config :modai_backend, dev_routes: true
 

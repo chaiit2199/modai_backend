@@ -54,7 +54,8 @@ defmodule ModaiBackend.MixProject do
       {:bandit, "~> 1.5"},
       {:bcrypt_elixir, "~> 3.0"},
       {:joken, "~> 2.6"},
-      {:gen_smtp, "~> 1.0"}
+      {:gen_smtp, "~> 1.0"},
+      {:cors_plug, "~> 3.0"}
     ]
   end
 

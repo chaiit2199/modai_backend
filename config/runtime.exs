@@ -74,6 +74,4 @@ if config_env() == :prod do
     issuer: "modai_backend",
     secret_key: secret_key_base
 
-  # CORS Configuration
-  config :modai_backend, ModaiBackendWeb.Plugs.CORS, allowed_origins: check_origin
 end
