@@ -10,23 +10,19 @@ defmodule ModaiBackendWeb.Plugs.OriginAllowlist do
   def init(opts), do: opts
 
   def call(conn, _opts) do
-    # Only check origin for /api (and /api/*) so dev tools (LiveDashboard, etc.) still work
     if not api_request?(conn) do
-      Logger.info("call_origins: not api_request?")
       conn
     else
       whitelist = get_origins_list()
       origin_value = get_origin_value(conn)
 
-      Logger.info("call_origins: #{inspect(whitelist)} #{inspect(origin_value)}")
-
-      # Whitelist rỗng = không cho phép bất kỳ origin nào (kể cả request không có Origin)
       if whitelist == [] do
         forbidden(conn, "empty_whitelist", nil)
       else
         case origin_value do
           nil ->
             if block_missing_origin?() do
+              log_origin_headers(conn, "missing_origin")
               forbidden(conn, "missing_origin", nil)
             else
               conn
@@ -43,11 +39,11 @@ defmodule ModaiBackendWeb.Plugs.OriginAllowlist do
     end
   end
 
-  # Đọc Origin từ header "origin", hoặc từ header fallback (vd X-Original-Origin) khi proxy strip Origin
+  # Đọc Origin theo thứ tự: 1) origin  2) header fallback (X-Requested-Origin)  3) Referer
   defp get_origin_value(conn) do
     case Plug.Conn.get_req_header(conn, "origin") do
       [v | _] when is_binary(v) and v != "" -> v
-      _ -> origin_fallback_header(conn)
+      _ -> origin_fallback_header(conn) || referer_as_origin(conn)
     end
   end
 
@@ -64,6 +60,37 @@ defmodule ModaiBackendWeb.Plugs.OriginAllowlist do
     end
   end
 
+  defp referer_as_origin(conn) do
+    if Application.get_env(:modai_backend, ModaiBackendWeb.Plugs.OriginAllowlist, [])
+       |> Keyword.get(:use_referer_fallback, false) do
+      case Plug.Conn.get_req_header(conn, "referer") do
+        [referer | _] when is_binary(referer) and referer != "" ->
+          referer_to_origin(referer)
+        _ -> nil
+      end
+    else
+      nil
+    end
+  end
+
+  defp referer_to_origin(referer) do
+    case URI.new(referer) do
+      {:ok, %URI{scheme: scheme, host: host, port: port}} when is_binary(host) ->
+        port = port || default_port(scheme)
+        "#{scheme}://#{host}:#{port}"
+      _ -> nil
+    end
+  end
+
+  defp log_origin_headers(conn, reason) do
+    headers =
+      ["origin", "referer", "x-requested-origin", "x-original-origin"]
+      |> Enum.map(fn name -> {name, Plug.Conn.get_req_header(conn, name) |> List.first()} end)
+      |> Enum.reject(fn {_, v} -> v == nil or v == "" end)
+      |> Map.new()
+    Logger.info("OriginAllowlist 403 reason=#{reason} path=#{conn.request_path} headers=#{inspect(headers)}")
+  end
+
   defp api_request?(conn), do: String.starts_with?(conn.request_path, "/api")
 
   defp block_missing_origin? do
@@ -72,10 +99,12 @@ defmodule ModaiBackendWeb.Plugs.OriginAllowlist do
   end
 
   defp forbidden(conn, reason, received_origin) do
-    Logger.info(
-      "OriginAllowlist 403 path=#{conn.request_path} reason=#{reason}" <>
-        if(received_origin, do: " received_origin=#{received_origin}", else: "")
-    )
+    unless reason == "missing_origin" do
+      Logger.info(
+        "OriginAllowlist 403 path=#{conn.request_path} reason=#{reason}" <>
+          if(received_origin, do: " received_origin=#{received_origin}", else: "")
+      )
+    end
 
     body =
       %{error: "origin not allowed", reason: reason}
@@ -95,8 +124,6 @@ defmodule ModaiBackendWeb.Plugs.OriginAllowlist do
   def get_origins(conn) do
     whitelist = get_origins_list()
     origin_value = get_origin_value(conn)
-
-    Logger.info("get_origins: #{inspect(whitelist)} #{inspect(origin_value)}")
 
     case origin_value do
       nil -> []
