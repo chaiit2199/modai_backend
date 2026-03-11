@@ -25,7 +25,7 @@ defmodule ModaiBackendWeb.TuviController do
             image: post.image || "",
             content: post.content,
             create_date: format_date(post.published_at),
-            published_ago: time_ago(post.published_at)
+            published_ago: time_ago(post.inserted_at)
           }
         end)
     })
@@ -117,8 +117,6 @@ defmodule ModaiBackendWeb.TuviController do
     category = params["category"] || params[:category]
     prompt = params["prompt"] || params[:prompt]
     image = params["image"] || params[:image] || ""
-
-    IO.inspect(validate_create_params_tuvi(email, username, category, prompt, title), label: "promptpromptprompt")
 
     with {:ok, _} <- validate_create_params_tuvi(email, username, category, prompt, title),
          {:ok, _user} <- validate_admin_user(username, email),
