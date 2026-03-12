@@ -100,13 +100,13 @@ defmodule ModaiBackend.DailyBloc do
   @doc """
   Lists latest posts with optional limit.
   Default limit is 10, can be customized via opts[:limit].
-  Sorted by inserted_at (newest first).
+  Sorted by updated_at (most recently updated first).
   """
   def list_latest_posts(opts \\ []) do
     limit = opts[:limit] || 10
 
     Post
-    |> order_by([p], desc: p.inserted_at)
+    |> order_by([p], desc: p.updated_at)
     |> limit(^limit)
     |> Repo.all()
   end

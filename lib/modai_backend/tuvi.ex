@@ -114,14 +114,13 @@ defmodule ModaiBackend.Tuvi do
   @doc """
   Lists latest posts with optional limit.
   Default limit is 10, can be customized via opts[:limit].
-  Sorted by published_at (ngày nội dung) desc first, rồi inserted_at – để bài viết cho ngày mai tạo hôm nay vẫn hiển thị đúng thứ tự khi đến mai.
+  Sorted by updated_at (most recently updated first).
   """
   def list_latest_posts(opts \\ []) do
     limit = opts[:limit] || 10
 
     Post
-    |> order_by([p], desc: p.published_at)
-    |> order_by([p], desc: p.inserted_at)
+    |> order_by([p], desc: p.updated_at)
     |> limit(^limit)
     |> Repo.all()
   end
